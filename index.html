@@ -86,6 +86,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <div class="total-card"><div class="lbl">Biweekly Set Aside</div><div class="val" id="t-biweekly">—</div></div>
   </div>
 </div>
+
+<div id="sync-bar" style="background:#ccfbf1;border-bottom:1px solid #99f6e4;padding:6px 16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:11px;">
+  <span style="font-weight:700;color:#0d9488;white-space:nowrap;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:1px">Google Sync</span>
+  <button onclick="pushToGoogle()" style="background:#0d9488;color:white;border:none;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:0.5px">Push to Google</button>
+  <button onclick="pullFromGoogle()" style="background:#0f766e;color:white;border:none;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:0.5px">Pull from Google</button>
+  <span id="sync-status" style="font-size:11px;font-weight:600;font-family:monospace;"></span>
+</div>
+
 <div class="content">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;margin-top:0.25rem"><div class="section-label" style="margin:0">Your supplements — tap to edit</div><button class="btn btn-dark" onclick="openAdd()" style="font-size:10px;padding:6px 14px">+ Add</button></div>
   <div id="cards"></div>
@@ -258,6 +266,48 @@ function submitAdd(){
     notes:document.getElementById('a-notes').value
   });
   save();closeAdd();render();
+}
+
+
+var JBIN_URL = "https://api.jsonbin.io/v3/b/69ce12e7aaba882197b90590";
+var JBIN_KEY = "$2a$10$tpjsSaIqmjzoWXjpvpu7n.AdJJdQf8JUbDhBDfNoCC5rzN0vxDh/m";
+
+function setSyncStatus(msg, cls) {
+  var el = document.getElementById('sync-status');
+  if(el) { el.textContent = msg; el.style.color = cls==='ok'?'#0d9488':cls==='err'?'#b00020':'#b45309'; }
+}
+
+function pushToGoogle() {
+  setSyncStatus('Saving...', 'pending');
+  fetch(JBIN_URL, {
+    method: 'PUT',
+    headers: {'Content-Type':'application/json','X-Master-Key':JBIN_KEY,'X-Bin-Versioning':'false'},
+    body: JSON.stringify(data)
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(){ setSyncStatus('Saved ' + new Date().toLocaleTimeString(), 'ok'); })
+  .catch(function(){ setSyncStatus('Save failed', 'err'); });
+}
+
+function pullFromGoogle() {
+  setSyncStatus('Loading...', 'pending');
+  fetch(JBIN_URL + '/latest', {
+    method: 'GET',
+    headers: {'X-Master-Key':JBIN_KEY}
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(resp){
+    var d = resp.record;
+    if(d && Array.isArray(d)){
+      data = d;
+      save();
+      render();
+      setSyncStatus('Loaded ' + new Date().toLocaleTimeString(), 'ok');
+    } else {
+      setSyncStatus('Nothing saved yet', 'err');
+    }
+  })
+  .catch(function(){ setSyncStatus('Could not connect', 'err'); });
 }
 
 function updateTotals(){
