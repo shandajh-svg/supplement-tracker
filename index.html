@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Supplement Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#faf7f2;
+  --card:#ffffff;
+  --text:#1c1a17;
+  --muted:#8a8070;
+  --border:#e8e2d9;
+  --green:#2d6a3f;
+  --green-bg:#edf7f0;
+  --yellow:#8a6800;
+  --yellow-bg:#fef9e7;
+  --red:#b00020;
+  --red-bg:#fdecea;
+  --accent:#4a3f8a;
+  --accent-light:#f0eefa;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:0}
+.hero{background:linear-gradient(135deg,#1c1a17 0%,#2d2820 60%,#3d3428 100%);padding:2.5rem 2rem 2rem;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:-40px;right:-40px;width:280px;height:280px;border-radius:50%;background:rgba(255,255,255,0.03);pointer-events:none}
+.hero::after{content:'';position:absolute;bottom:-60px;left:20%;width:200px;height:200px;border-radius:50%;background:rgba(255,255,255,0.02);pointer-events:none}
+.hero h1{font-family:'DM Serif Display',serif;font-size:2rem;color:#fff;letter-spacing:0.5px;margin-bottom:0.25rem}
+.hero p{font-size:12px;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:2px;margin-bottom:1.5rem}
+.totals-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.total-card{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:14px 16px}
+.total-card .lbl{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,0.45);margin-bottom:4px}
+.total-card .val{font-family:'DM Serif Display',serif;font-size:1.5rem;color:#fff}
+.content{padding:1.5rem 1.25rem;max-width:720px;margin:0 auto}
+.section-label{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:0.75rem;margin-top:0.25rem}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:10px;overflow:hidden;transition:box-shadow 0.2s}
+.card:hover{box-shadow:0 4px 20px rgba(0,0,0,0.08)}
+.card-header{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;user-select:none}
+.dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.dot-red{background:var(--red)}
+.dot-yellow{background:#f0b429}
+.dot-green{background:#38a169}
+.dot-grey{background:#ccc}
+.card-name{font-size:13px;font-weight:600;flex:1;line-height:1.35}
+.badge{font-size:10px;font-weight:600;padding:4px 10px;border-radius:20px;white-space:nowrap;letter-spacing:0.5px}
+.badge-red{background:var(--red-bg);color:var(--red)}
+.badge-yellow{background:var(--yellow-bg);color:var(--yellow)}
+.badge-green{background:var(--green-bg);color:var(--green)}
+.badge-grey{background:#f0f0f0;color:#777}
+.chevron{font-size:11px;color:var(--muted);transition:transform 0.2s;flex-shrink:0}
+.chevron.open{transform:rotate(180deg)}
+.card-body{padding:0 16px 16px;display:none;border-top:1px solid var(--border)}
+.card-body.open{display:block}
+.costs-bar{display:flex;gap:0;margin:14px 0 12px;border-radius:10px;overflow:hidden;border:1px solid var(--border)}
+.cost-cell{flex:1;padding:10px 12px;text-align:center;background:var(--bg)}
+.cost-cell:not(:last-child){border-right:1px solid var(--border)}
+.cost-cell .cl{font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:3px}
+.cost-cell .cv{font-family:'DM Serif Display',serif;font-size:1.1rem;color:var(--text)}
+.fields-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.fields-grid.three{grid-template-columns:1fr 1fr 1fr}
+.field label{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);display:block;margin-bottom:4px;font-weight:600}
+.field input{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;background:#fff;color:var(--text);transition:border-color 0.15s}
+.field input:focus{outline:none;border-color:var(--accent)}
+.field.full{grid-column:1/-1}
+.actions{display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap}
+.btn{font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;padding:8px 16px;border-radius:8px;cursor:pointer;border:none;transition:opacity 0.15s}
+.btn:hover{opacity:0.85}
+.btn-dark{background:var(--text);color:#fff}
+.btn-green{background:var(--green);color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:5px}
+.saved{font-size:11px;color:var(--green);font-weight:600}
+</style>
+</head>
+<body>
+<div class="hero">
+  <h1>Supplement Tracker</h1>
+  <p>Daily costs &amp; run-out dates</p>
+  <div class="totals-grid">
+    <div class="total-card"><div class="lbl">Daily</div><div class="val" id="t-daily">—</div></div>
+    <div class="total-card"><div class="lbl">Monthly</div><div class="val" id="t-monthly">—</div></div>
+    <div class="total-card"><div class="lbl">Biweekly Set Aside</div><div class="val" id="t-biweekly">—</div></div>
+  </div>
+</div>
+<div class="content">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;margin-top:0.25rem"><div class="section-label" style="margin:0">Your supplements — tap to edit</div><button class="btn btn-dark" onclick="openAdd()" style="font-size:10px;padding:6px 14px">+ Add</button></div>
+  <div id="cards"></div>
+</div>
+<script>
+var STORE_KEY='supp_v1';
+var SEED=[
+  {id:1,name:"Sports Research Omega-3 Fish Oil",cost:39.33,servings:47,qpd:1,due:"2026-06-10",url:"https://www.amazon.com/dp/B0DJQV7ZR3",notes:"47 servings/bottle, 5mg/serving, 5mg/day"},
+  {id:2,name:"NorCal Hydrolyzed Collagen Peptides",cost:75.40,servings:62,qpd:10.975,due:"2026-06-07",url:"https://www.amazon.com/dp/B01MR7382F",notes:"680g in 2 bags = 62 servings, 10.975g/day"},
+  {id:3,name:"Nativas Organics Chia Seeds 1 lb",cost:12.49,servings:90,qpd:5,due:"2026-08-04",url:"https://www.amazon.com/dp/B001CGTN1I",notes:"454g / 5g per day"},
+  {id:4,name:"NOW Hyaluronic Acid 100mg 120 caps",cost:25.47,servings:120,qpd:1,due:"2026-08-07",url:"https://www.amazon.com/dp/B00663G8WO",notes:"1 cap/day"},
+  {id:5,name:"Micro Ingredients Astaxanthin 12mg 120 softgels",cost:37.66,servings:120,qpd:1,due:"2026-08-18",url:"https://www.amazon.com/dp/B08MWZQ4S6",notes:"1 softgel/day"},
+  {id:6,name:"Sports Research Phytoceramides 350mg 60 caps",cost:28.40,servings:60,qpd:1,due:"2026-05-30",url:"https://www.amazon.com/dp/B0FJR2BSC5",notes:"1 cap/day"},
+  {id:7,name:"Kirkland Vitamin D3 2000 IU 600 caps",cost:16.15,servings:600,qpd:1,due:"2027-09-07",url:"https://www.amazon.com/gp/product/B00JGZ63WE/",notes:"1 cap/day"},
+  {id:8,name:"NOW Foods MK-7 Vitamin K-2 100mcg",cost:18.29,servings:60,qpd:2,due:"2026-06-24",url:"https://www.amazon.com/dp/B076Y6WRKH",notes:"2 caps/day"},
+  {id:9,name:"Pure Encapsulations Lutein/Zeaxanthin",cost:73.81,servings:120,qpd:1,due:"2026-07-30",url:"https://www.amazon.com/dp/B0015TFTZG",notes:"1 cap/day"},
+  {id:10,name:"Centrum Minis Silver Women's 50+ 280ct",cost:20.29,servings:280,qpd:1,due:"2026-09-14",url:"https://www.amazon.com/gp/product/B08FW3N96T/",notes:"1 cap/day"}
+];
+
+var data;
+try{var s=localStorage.getItem(STORE_KEY);data=s?JSON.parse(s):JSON.parse(JSON.stringify(SEED));}catch(e){data=JSON.parse(JSON.stringify(SEED));}
+
+function save(){try{localStorage.setItem(STORE_KEY,JSON.stringify(data));}catch(e){}}
+
+function daysLeft(due){
+  if(!due) return null;
+  var d=new Date(due+'T00:00:00');
+  var t=new Date();t.setHours(0,0,0,0);
+  return Math.ceil((d-t)/86400000);
+}
+
+function status(days){
+  if(days===null) return {dot:'dot-grey',badge:'badge-grey',label:'No date'};
+  if(days<=0) return {dot:'dot-red',badge:'badge-red',label:'Past due'};
+  if(days<=14) return {dot:'dot-red',badge:'badge-red',label:days+' days left'};
+  if(days<=30) return {dot:'dot-yellow',badge:'badge-yellow',label:days+' days left'};
+  return {dot:'dot-green',badge:'badge-green',label:days+' days left'};
+}
+
+function costs(s){
+  var d=s.cost/s.servings;
+  return{daily:d,monthly:d*30.42,biweekly:d*30.42/2};
+}
+
+function render(){
+  var sorted=data.slice().sort(function(a,b){
+    var da=daysLeft(a.due),db=daysLeft(b.due);
+    if(da===null&&db===null)return 0;
+    if(da===null)return 1;
+    if(db===null)return -1;
+    return da-db;
+  });
+  var html='';
+  sorted.forEach(function(s){
+    var days=daysLeft(s.due);
+    var st=status(days);
+    var dueDisplay='';
+    if(s.due){
+      var dd=new Date(s.due+'T00:00:00');
+      dueDisplay=' ('+( dd.getMonth()+1)+'/'+dd.getDate()+'/'+dd.getFullYear()+')';
+    }
+    var c=costs(s);
+    html+='<div class="card" id="card-'+s.id+'">';
+    html+='<div class="card-header" onclick="toggle('+s.id+')">';
+    html+='<div class="dot '+st.dot+'"></div>';
+    html+='<div class="card-name">'+s.name+'</div>';
+    html+='<div class="badge '+st.badge+'">'+st.label+(s.due?' · '+(new Date(s.due+'T00:00:00').getMonth()+1)+'/'+(new Date(s.due+'T00:00:00').getDate())+'/'+(new Date(s.due+'T00:00:00').getFullYear()):'')+'</div>';
+    html+='<div class="chevron" id="chev-'+s.id+'">▼</div>';
+    html+='</div>';
+    html+='<div class="card-body" id="body-'+s.id+'">';
+    html+='<div class="costs-bar">';
+    html+='<div class="cost-cell"><div class="cl">Daily</div><div class="cv">$'+c.daily.toFixed(2)+'</div></div>';
+    html+='<div class="cost-cell"><div class="cl">Monthly</div><div class="cv">$'+c.monthly.toFixed(2)+'</div></div>';
+    html+='<div class="cost-cell"><div class="cl">Biweekly</div><div class="cv">$'+c.biweekly.toFixed(2)+'</div></div>';
+    html+='</div>';
+    html+='<div class="fields-grid three">';
+    html+='<div class="field"><label>Price ($)</label><input type="number" step="0.01" id="cost-'+s.id+'" value="'+s.cost+'"></div>';
+    html+='<div class="field"><label>Servings/bottle</label><input type="number" step="1" id="svgs-'+s.id+'" value="'+s.servings+'"></div>';
+    html+='<div class="field"><label>Qty/day</label><input type="number" step="0.001" id="qpd-'+s.id+'" value="'+s.qpd+'"></div>';
+    html+='</div>';
+    html+='<div class="fields-grid">';
+    html+='<div class="field"><label>Due date</label><input type="date" id="due-'+s.id+'" value="'+(s.due||'')+'"></div>';
+    html+='<div class="field"><label>Days left (sets due date)</label><input type="number" id="dl-'+s.id+'" placeholder="e.g. 45"></div>';
+    html+='</div>';
+    html+='<div class="fields-grid">';
+    html+='<div class="field full"><label>Purchase link</label><input type="url" id="url-'+s.id+'" value="'+(s.url||'')+'" placeholder="https://..."></div>';
+    html+='</div>';
+    html+='<div class="field" style="margin-bottom:12px"><label>Notes</label><input type="text" id="notes-'+s.id+'" value="'+(s.notes||'')+'"></div>';
+    html+='<div class="actions">';
+    html+='<button class="btn btn-dark" onclick="saveItem('+s.id+')">Save Changes</button>';
+    if(s.url) html+='<a class="btn btn-green" href="'+s.url+'" target="_blank">↗ Buy</a>';
+    html+='<button class="btn" style="background:#fdecea;color:#b00020;border:1px solid #f5c6cb" onclick="deleteItem('+s.id+')">Delete</button>';
+    html+='<span class="saved" id="msg-'+s.id+'"></span>';
+    html+='</div></div></div>';
+  });
+  document.getElementById('cards').innerHTML=html;
+  updateTotals();
+}
+
+function toggle(id){
+  var b=document.getElementById('body-'+id);
+  var c=document.getElementById('chev-'+id);
+  b.classList.toggle('open');
+  c.classList.toggle('open');
+}
+
+function saveItem(id){
+  var s=data.find(function(x){return x.id===id;});
+  s.cost=parseFloat(document.getElementById('cost-'+id).value)||s.cost;
+  s.servings=parseFloat(document.getElementById('svgs-'+id).value)||s.servings;
+  s.qpd=parseFloat(document.getElementById('qpd-'+id).value)||s.qpd;
+  var due=document.getElementById('due-'+id).value;
+  var dl=document.getElementById('dl-'+id).value;
+  if(dl!==''){
+    var n=parseInt(dl);
+    if(!isNaN(n)){
+      var d=new Date();d.setHours(0,0,0,0);
+      d.setDate(d.getDate()+n);
+      due=d.toISOString().slice(0,10);
+    }
+  }
+  s.due=due;
+  s.url=document.getElementById('url-'+id).value;
+  s.notes=document.getElementById('notes-'+id).value;
+  save();
+  var msg=document.getElementById('msg-'+id);
+  msg.textContent='Saved!';
+  setTimeout(function(){msg.textContent='';render();document.getElementById('body-'+id).classList.add('open');document.getElementById('chev-'+id).classList.add('open');},100);
+}
+
+
+function deleteItem(id){
+  if(!confirm('Delete this supplement?')) return;
+  data=data.filter(function(x){return x.id!==id;});
+  save();render();
+}
+
+function openAdd(){
+  var modal=document.getElementById('add-modal');
+  modal.style.display='flex';
+}
+
+function closeAdd(){
+  document.getElementById('add-modal').style.display='none';
+  document.getElementById('add-form').reset();
+}
+
+function submitAdd(){
+  var name=document.getElementById('a-name').value.trim();
+  if(!name){alert('Name is required.');return;}
+  var maxId=data.reduce(function(a,s){return Math.max(a,s.id);},0);
+  var due=document.getElementById('a-due').value;
+  var dl=document.getElementById('a-dl').value;
+  if(dl!==''){
+    var n=parseInt(dl);
+    if(!isNaN(n)){
+      var d=new Date();d.setHours(0,0,0,0);
+      d.setDate(d.getDate()+n);
+      due=d.toISOString().slice(0,10);
+    }
+  }
+  data.push({
+    id:maxId+1,
+    name:name,
+    cost:parseFloat(document.getElementById('a-cost').value)||0,
+    servings:parseFloat(document.getElementById('a-svgs').value)||1,
+    qpd:parseFloat(document.getElementById('a-qpd').value)||1,
+    due:due,
+    url:document.getElementById('a-url').value,
+    notes:document.getElementById('a-notes').value
+  });
+  save();closeAdd();render();
+}
+
+function updateTotals(){
+  var td=data.reduce(function(a,s){return a+s.cost/s.servings;},0);
+  document.getElementById('t-daily').textContent='$'+td.toFixed(2);
+  document.getElementById('t-monthly').textContent='$'+(td*30.42).toFixed(2);
+  document.getElementById('t-biweekly').textContent='$'+(td*30.42/2).toFixed(2);
+}
+
+render();
+</script>
+
+<div id="add-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:200;align-items:center;justify-content:center;padding:1rem">
+  <div style="background:#fff;border-radius:16px;padding:22px;width:min(480px,95vw);max-height:90vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div style="font-family:'DM Serif Display',serif;font-size:1.3rem">Add Supplement</div>
+      <button onclick="closeAdd()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#888">×</button>
+    </div>
+    <form id="add-form" onsubmit="event.preventDefault();submitAdd()">
+      <div class="fields-grid" style="margin-bottom:10px">
+        <div class="field full"><label>Name</label><input type="text" id="a-name" required placeholder="e.g. NOW Vitamin C"></div>
+      </div>
+      <div class="fields-grid three" style="margin-bottom:10px">
+        <div class="field"><label>Price ($)</label><input type="number" step="0.01" id="a-cost" placeholder="0.00"></div>
+        <div class="field"><label>Servings/bottle</label><input type="number" step="1" id="a-svgs" placeholder="60"></div>
+        <div class="field"><label>Qty/day</label><input type="number" step="0.001" id="a-qpd" placeholder="1"></div>
+      </div>
+      <div class="fields-grid" style="margin-bottom:10px">
+        <div class="field"><label>Due date</label><input type="date" id="a-due"></div>
+        <div class="field"><label>Days left (sets due date)</label><input type="number" id="a-dl" placeholder="e.g. 45"></div>
+      </div>
+      <div class="field" style="margin-bottom:10px"><label>Purchase link</label><input type="url" id="a-url" placeholder="https://..."></div>
+      <div class="field" style="margin-bottom:16px"><label>Notes</label><input type="text" id="a-notes" placeholder="Optional notes"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button type="button" class="btn" style="background:#f0f0f0;color:#333" onclick="closeAdd()">Cancel</button>
+        <button type="submit" class="btn btn-dark">Add Supplement</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+</body>
+</html>
