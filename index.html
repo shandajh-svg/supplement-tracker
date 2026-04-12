@@ -106,48 +106,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 </div>
 
 <div class="content">
-
-  <!-- GROUP SHIFT BUTTONS -->
-  <div class="shift-section">
-    <h3>Shift due dates by group</h3>
-
-    <div class="shift-group">
-      <div class="shift-group-label">Collagen · Fish Oil · Chia Seeds</div>
-      <div class="shift-group-items">NorCal Collagen, Sports Research Fish Oil, Nativas Chia Seeds</div>
-      <div class="shift-btns">
-        <button class="shift-btn" onclick="shiftGroup('group1',1)">+1 day</button>
-        <button class="shift-btn" onclick="shiftGroup('group1',2)">+2 days</button>
-        <button class="shift-btn" onclick="shiftGroup('group1',3)">+3 days</button>
-        <button class="shift-btn" onclick="shiftGroup('group1',-1)">−1 day</button>
-        <span class="shift-msg" id="msg-group1"></span>
-      </div>
-    </div>
-
-    <div class="shift-group">
-      <div class="shift-group-label">Centrum Minis</div>
-      <div class="shift-group-items">Centrum Minis Silver Women's 50+</div>
-      <div class="shift-btns">
-        <button class="shift-btn" onclick="shiftGroup('group2',1)">+1 day</button>
-        <button class="shift-btn" onclick="shiftGroup('group2',2)">+2 days</button>
-        <button class="shift-btn" onclick="shiftGroup('group2',3)">+3 days</button>
-        <button class="shift-btn" onclick="shiftGroup('group2',-1)">−1 day</button>
-        <span class="shift-msg" id="msg-group2"></span>
-      </div>
-    </div>
-
-    <div class="shift-group">
-      <div class="shift-group-label">Phytoceramides · K-2 · Lutein/Zeaxanthin · Hyaluronic Acid · Astaxanthin · Vitamin D</div>
-      <div class="shift-group-items">Sports Research Phytoceramides, NOW K-2, Pure Encapsulations Lutein/Zeaxanthin, NOW Hyaluronic Acid, Micro Ingredients Astaxanthin, Kirkland Vitamin D3</div>
-      <div class="shift-btns">
-        <button class="shift-btn" onclick="shiftGroup('group3',1)">+1 day</button>
-        <button class="shift-btn" onclick="shiftGroup('group3',2)">+2 days</button>
-        <button class="shift-btn" onclick="shiftGroup('group3',3)">+3 days</button>
-        <button class="shift-btn" onclick="shiftGroup('group3',-1)">−1 day</button>
-        <span class="shift-msg" id="msg-group3"></span>
-      </div>
-    </div>
-  </div>
-
+  <div id="groups-section"></div>
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;margin-top:0.25rem">
     <div class="section-label" style="margin:0">Your supplements — tap to edit</div>
     <button class="btn btn-dark" onclick="openAdd()" style="font-size:10px;padding:6px 14px">+ Add</button>
@@ -171,32 +130,94 @@ var SEED=[
 ];
 
 // Group definitions — match by partial name
-var GROUPS = {
-  group1: ['fish oil','collagen','chia'],
-  group2: ['centrum'],
-  group3: ['phytoceramides','vitamin k','k-2','lutein','hyaluronic','astaxanthin','vitamin d','vitamin d3']
-};
+// Groups stored as array: [{id, label, ids:[supplementId,...]}]
+var GROUPS_KEY='supp_groups_v1';
+var SEED_GROUPS=[
+  {id:'group1', label:'Collagen · Fish Oil · Chia Seeds', ids:[1,2,3]},
+  {id:'group2', label:'Centrum Minis', ids:[10]},
+  {id:'group3', label:'Phytoceramides · K-2 · Lutein/Zeaxanthin · Hyaluronic Acid · Astaxanthin · Vitamin D', ids:[6,8,9,4,5,7]}
+];
+var groups;
+try{var gs=localStorage.getItem(GROUPS_KEY);groups=gs?JSON.parse(gs):JSON.parse(JSON.stringify(SEED_GROUPS));}catch(e){groups=JSON.parse(JSON.stringify(SEED_GROUPS));}
 
-function nameInGroup(name, groupKey) {
-  var n = name.toLowerCase();
-  return GROUPS[groupKey].some(function(kw){ return n.indexOf(kw) >= 0; });
-}
+function saveGroups(){try{localStorage.setItem(GROUPS_KEY,JSON.stringify(groups));}catch(e){}}
 
-function shiftGroup(groupKey, days) {
-  var count = 0;
-  data.forEach(function(s) {
-    if (!nameInGroup(s.name, groupKey)) return;
-    if (!s.due) return;
-    var d = new Date(s.due + 'T00:00:00');
-    d.setDate(d.getDate() + days);
-    s.due = d.toISOString().slice(0,10);
+function shiftGroup(groupId, days){
+  var grp=groups.find(function(g){return g.id===groupId;});
+  if(!grp)return;
+  var count=0;
+  data.forEach(function(s){
+    if(grp.ids.indexOf(s.id)<0)return;
+    if(!s.due)return;
+    var d=new Date(s.due+'T00:00:00');
+    d.setDate(d.getDate()+days);
+    var mm=d.getMonth()+1,dd=d.getDate();
+    s.due=d.getFullYear()+'-'+(mm<10?'0':'')+mm+'-'+(dd<10?'0':'')+dd;
     count++;
   });
-  save();
-  render();
-  var msgEl = document.getElementById('msg-' + groupKey);
-  msgEl.textContent = 'Shifted ' + count + ' item' + (count===1?'':'s') + ' by ' + (days>0?'+':'') + days + ' day' + (Math.abs(days)===1?'':'s');
-  setTimeout(function(){ msgEl.textContent = ''; }, 2500);
+  save();render();renderGroups();
+  var msgEl=document.getElementById('msg-'+groupId);
+  if(msgEl){msgEl.textContent='Shifted '+count+' item'+(count===1?'':'s')+' by '+(days>0?'+':'')+days+' day'+(Math.abs(days)===1?'':'s');setTimeout(function(){msgEl.textContent='';},2500);}
+}
+
+function renderGroups(){
+  var sec=document.getElementById('groups-section');
+  if(!sec)return;
+  var html='<div class="shift-section"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><h3 style="margin:0">Shift due dates by group</h3><button class="shift-btn" onclick="addGroup()" style="font-size:10px;padding:4px 10px">+ Add Group</button></div>';
+  groups.forEach(function(grp){
+    // Build checkbox list of all supplements
+    var checkboxes=data.map(function(s){
+      var checked=grp.ids.indexOf(s.id)>=0?'checked':'';
+      return '<label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text);cursor:pointer;padding:2px 0;">'
+        +'<input type="checkbox" '+checked+' onchange="toggleSupp(\''+grp.id+'\','+s.id+',this.checked)" style="accent-color:var(--accent);cursor:pointer;">'
+        +s.name+'</label>';
+    }).join('');
+    html+='<div class="shift-group" id="grp-'+grp.id+'">';
+    // Label row
+    html+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">';
+    html+='<input type="text" value="'+grp.label.replace(/"/g,'&quot;')+'" onchange="renameGroup(\''+grp.id+'\',this.value)" style="flex:1;font-size:13px;font-weight:600;border:none;border-bottom:1px solid var(--border);background:transparent;padding:2px 0;color:var(--text);font-family:\'DM Sans\',sans-serif;">';
+    html+='<button onclick="deleteGroup(\''+grp.id+'\')" style="background:none;border:none;color:#b00020;font-size:13px;cursor:pointer;padding:2px 4px;" title="Delete group">✕</button>';
+    html+='</div>';
+    // Supplement checkboxes (collapsible)
+    html+='<details style="margin-bottom:8px;"><summary style="font-size:10px;color:var(--muted);cursor:pointer;text-transform:uppercase;letter-spacing:1px;">Edit members ('+grp.ids.length+' selected)</summary>';
+    html+='<div style="padding:8px 0;display:flex;flex-direction:column;gap:2px;">'+checkboxes+'</div></details>';
+    // Shift buttons
+    html+='<div class="shift-btns">';
+    html+='<button class="shift-btn" onclick="shiftGroup(\''+grp.id+'\',1)">+1 day</button>';
+    html+='<button class="shift-btn" onclick="shiftGroup(\''+grp.id+'\',2)">+2 days</button>';
+    html+='<button class="shift-btn" onclick="shiftGroup(\''+grp.id+'\',3)">+3 days</button>';
+    html+='<button class="shift-btn" onclick="shiftGroup(\''+grp.id+'\' ,-1)">−1 day</button>';
+    html+='<span class="shift-msg" id="msg-'+grp.id+'"></span>';
+    html+='</div></div>';
+  });
+  html+='</div>';
+  sec.innerHTML=html;
+}
+
+function renameGroup(groupId, newLabel){
+  var grp=groups.find(function(g){return g.id===groupId;});
+  if(grp){grp.label=newLabel;saveGroups();}
+}
+
+function toggleSupp(groupId, suppId, checked){
+  var grp=groups.find(function(g){return g.id===groupId;});
+  if(!grp)return;
+  var idx=grp.ids.indexOf(suppId);
+  if(checked&&idx<0)grp.ids.push(suppId);
+  else if(!checked&&idx>=0)grp.ids.splice(idx,1);
+  saveGroups();renderGroups();
+}
+
+function addGroup(){
+  var id='group'+Date.now();
+  groups.push({id:id,label:'New Group',ids:[]});
+  saveGroups();renderGroups();
+}
+
+function deleteGroup(groupId){
+  if(!confirm('Delete this group?'))return;
+  groups=groups.filter(function(g){return g.id!==groupId;});
+  saveGroups();renderGroups();
 }
 
 var data;
@@ -405,6 +426,7 @@ function updateTotals(){
 }
 
 render();
+renderGroups();
 </script>
 
 <div id="add-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:200;align-items:center;justify-content:center;padding:1rem">
