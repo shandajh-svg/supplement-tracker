@@ -101,6 +101,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <span style="font-weight:700;color:#0d9488;white-space:nowrap;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:1px">Sync</span>
   <button onclick="pushData()" style="background:#0d9488;color:white;border:none;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:0.5px">↑ Push</button>
   <button onclick="pullData()" style="background:#0f766e;color:white;border:none;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:0.5px">↓ Pull</button>
+  <button onclick="downloadBackup()" style="background:#7b5ea7;color:white;border:none;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:0.5px">⬇ Backup</button>
   <span id="sync-status" style="font-size:11px;font-weight:600;font-family:monospace;"></span>
 </div>
 
@@ -259,6 +260,9 @@ function render(){
     html+='<div class="field"><label>Servings/bottle</label><input type="number" step="1" id="svgs-'+s.id+'" value="'+s.servings+'"></div>';
     html+='<div class="field"><label>Qty/day</label><input type="number" step="0.001" id="qpd-'+s.id+'" value="'+s.qpd+'"></div>';
     html+='</div>';
+    html+='<div class="fields-grid" style="margin-bottom:10px">';
+    html+='<div class="field full"><label>Name</label><input type="text" id="name-'+s.id+'" value="'+s.name.replace(/"/g,'&quot;')+'"></div>';
+    html+='</div>';
     html+='<div class="fields-grid">';
     html+='<div class="field"><label>Due date</label><input type="date" id="due-'+s.id+'" value="'+(s.due||'')+'"></div>';
     html+='<div class="field"><label>Days left (sets due date)</label><input type="number" id="dl-'+s.id+'" placeholder="e.g. 45"></div>';
@@ -287,6 +291,8 @@ function toggle(id){
 
 function saveItem(id){
   var s=data.find(function(x){return x.id===id;});
+  var nameVal=document.getElementById('name-'+id).value.trim();
+  if(nameVal)s.name=nameVal;
   s.cost=parseFloat(document.getElementById('cost-'+id).value)||s.cost;
   s.servings=parseFloat(document.getElementById('svgs-'+id).value)||s.servings;
   s.qpd=parseFloat(document.getElementById('qpd-'+id).value)||s.qpd;
@@ -359,6 +365,14 @@ function setSyncStatus(msg,cls){
   if(el){el.textContent=msg;el.style.color=cls==='ok'?'#0d9488':cls==='err'?'#b00020':'#b45309';}
 }
 
+function downloadBackup(){
+  var json=JSON.stringify(data,null,2);
+  var blob=new Blob([json],{type:'application/json'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='supplement-backup-'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+}
 function pushData(){
   setSyncStatus('Syncing...','pending');
   fetch(JBIN_URL,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':JBIN_KEY,'X-Bin-Versioning':'false'},body:JSON.stringify(data)})
